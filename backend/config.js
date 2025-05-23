@@ -1,0 +1,2 @@
+export const PORT = 5000;
+export const mongoDBURL = "mongodb+srv://thipireddylikithareddy:root@college-event-organizer.agrc56g.mongodb.net/?retryWrites=true&w=majority&appName=College-Event-Organizer";
