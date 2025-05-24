@@ -7,7 +7,6 @@ function ParticipantDashboard() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Fetch all events on component mount
     const fetchEvents = async () => {
       try {
         const response = await axios.get('http://localhost:5000/api/events/all');
@@ -21,15 +20,19 @@ function ParticipantDashboard() {
   }, []);
 
   const handleLogout = () => {
-    // Remove JWT token from localStorage
     localStorage.removeItem('token');
 
-    // Redirect to login page
     navigate('/login');
   };
 
   return (
     <div className="container my-4">
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h2 className="text-primary text-center w-100">Participant Dashboard</h2>
+        <button onClick={handleLogout} className="btn btn-danger btn-sm ms-2">
+          Logout
+        </button>
+      </div>
       <h2 className="mb-4 text-center">All Events</h2>
       {events.length === 0 ? (
         <p>No events available at the moment.</p>
@@ -64,9 +67,6 @@ function ParticipantDashboard() {
           ))}
         </div>
       )}
-      <button onClick={handleLogout} className="btn btn-danger">
-        Logout
-      </button>
     </div>
   );
 }

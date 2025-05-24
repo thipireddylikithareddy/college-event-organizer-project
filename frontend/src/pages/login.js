@@ -15,6 +15,7 @@ function Login() {
     try {
       const res = await axios.post('http://localhost:5000/api/user/login', formData);
       localStorage.setItem('token', res.data.token);
+      localStorage.setItem('role', res.data.role);
       const role = res.data.role;
       if(role === 'organizer')
         navigate('/organizer-dashboard');

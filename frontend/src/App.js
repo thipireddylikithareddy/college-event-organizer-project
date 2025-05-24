@@ -11,8 +11,8 @@ function App(){
       <Routes>
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/organizer-dashboard" element={ <ProtectedRoute> <OrganizerDashboard /> </ProtectedRoute> } />
-        <Route path="/participant-dashboard" element={ <ProtectedRoute> <ParticipantDashboard /> </ProtectedRoute> } />
+        <Route path="/organizer-dashboard" element={ <ProtectedRoute allowedRole="organizer"> <OrganizerDashboard /> </ProtectedRoute> } />
+        <Route path="/participant-dashboard" element={ <ProtectedRoute allowedRole="participant"> <ParticipantDashboard /> </ProtectedRoute> } />
       </Routes>
     </Router>
   );

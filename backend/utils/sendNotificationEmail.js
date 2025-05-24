@@ -1,6 +1,13 @@
 import 'dotenv/config';
 import nodemailer from 'nodemailer';
 
+const formatTimeWithAMPM = (time24) => {
+    const [hours, minutes] = time24.split(':').map(Number);
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const hour12 = hours % 12 || 12;
+    return `${hour12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+};
+
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -17,9 +24,9 @@ const SendNotificationEmail = async (recipients, event) => {
         html: `
       <h2>${event.eventName}</h2>
       <p><strong>Date:</strong> ${event.date}</p>
-      <p><strong>Time:</strong> ${event.time}</p>
-      <p><strong>Venue:</strong> ${event.venue} <br/> a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.venue)}" target="_blank">Get Directions</a> /p>
-      <p><strong>Register:</strong> <a href="${event.register}">${event.register}</a></p>
+      <p><strong>Time:</strong> ${formatTimeWithAMPM(event.time)}</p>
+      <p><strong>Venue:</strong> ${event.venue} <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.venue)}" target="_blank"> ( Get Directions ) </a> </p>
+      <p><strong>Register:</strong><a href="${event.register}"> Register Here </a></p>
     `
     };
 

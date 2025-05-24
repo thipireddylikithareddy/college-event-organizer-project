@@ -1,16 +1,39 @@
 // src/pages/OrganizerDashboard.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 function OrganizerDashboard() {
   const [events, setEvents] = useState([]);
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     eventName: '', date: '', time: '', venue: '', register: '',
   });
 
   const token = localStorage.getItem('token');
 
-  // Fetch events
+  const venueOptions = [
+    'JNTUH CSE Department',
+    'JNTUH ECE Department',
+    'JNTUH EEE Department',
+    'JNTUH Mechanical Department',
+    'JNTUH Civil Department',
+    'JNTUH Metallurgy Department',
+    'JNTUH Classroom Complex (CRC)',
+    'JNTUH Examination Building',
+    'JNTUH Central Library',
+    'JNTUH Innovation Foundation (JTBI)',
+    'JNTUH Canteen',
+    'JNTUH Research and Development Cell',
+    'JNTUH College Ground',
+    'JNTUH Auditorium',
+    'JNTUH Guest House',
+    'JNTUH UGC',
+    'JNTUH Namaz Hall',
+    'JNTUH Main Building',
+    'JNTUH Administrative Building',
+  ];
+
   useEffect(() => {
     axios.get('http://localhost:5000/api/events/my', {
       headers: { Authorization: `Bearer ${token}` }
@@ -37,10 +60,22 @@ function OrganizerDashboard() {
       .catch(err => alert('Event creation failed'));
   };
 
+  const handleLogout = () => {
+    // Remove JWT token from localStorage
+    localStorage.removeItem('token');
+
+    // Redirect to login page
+    navigate('/login');
+  };
+
   return (
     <div className="container py-5">
-      <h2 className="mb-4 text-center text-primary">Organizer Dashboard</h2>
-
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h2 className="text-primary text-center w-100">Organizer Dashboard</h2>
+        <button onClick={handleLogout} className="btn btn-danger btn-sm ms-2">
+          Logout
+        </button>
+      </div>
       {/* Create Event Form */}
       <div className="card shadow-sm mb-5">
         <div className="card-header bg-primary text-white">
@@ -86,15 +121,19 @@ function OrganizerDashboard() {
             </div>
             <div className="col-12">
               <label htmlFor="venue" className="form-label">Venue</label>
-              <input
+              <select
                 id="venue"
                 name="venue"
-                className="form-control"
+                className="form-select"
                 value={formData.venue}
                 onChange={handleChange}
-                placeholder="Enter venue location"
                 required
-              />
+              >
+                <option value="">-- Select a venue --</option>
+                {venueOptions.map((venue, index) => (
+                  <option key={index} value={venue}>{venue}</option>
+                ))}
+              </select>
             </div>
             <div className="col-12">
               <label htmlFor="register" className="form-label">Registration Link</label>
