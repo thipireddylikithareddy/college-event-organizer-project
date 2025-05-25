@@ -6,8 +6,9 @@ import { useNavigate } from 'react-router-dom';
 function OrganizerDashboard() {
   const [events, setEvents] = useState([]);
   const navigate = useNavigate();
+  const [editingEventId, setEditingEventId] = useState(null);
   const [formData, setFormData] = useState({
-    eventName: '', date: '', time: '', venue: '', register: '',
+    eventName: '', date: '', time: '', venue: '', description: '', register: '',
   });
 
   const token = localStorage.getItem('token');
@@ -47,26 +48,135 @@ function OrganizerDashboard() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Submit new event
   const handleSubmit = (e) => {
     e.preventDefault();
-    axios.post('http://localhost:5000/api/events/create', formData, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then(res => {
-        alert(res.data.message);
-        window.location.reload(); // refresh event list
+
+    if (editingEventId) {
+      // EDIT MODE → PUT request
+      axios.put(`http://localhost:5000/api/events/${editingEventId}`, formData, {
+        headers: { Authorization: `Bearer ${token}` }
       })
-      .catch(err => alert('Event creation failed'));
+        .then(res => {
+          alert(res.data.message);
+          setEditingEventId(null);
+          setFormData({
+            eventName: '', date: '', time: '', venue: '', description: '', register: '',
+          });
+          window.location.reload();
+        })
+        .catch(err => alert('Event update failed'));
+    } else {
+      // CREATE MODE → POST request
+      axios.post('http://localhost:5000/api/events/', formData, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(res => {
+          alert(res.data.message);
+          setFormData({
+            eventName: '', date: '', time: '', venue: '', description: '', register: '',
+          });
+          window.location.reload();
+        })
+        .catch(err => alert('Event creation failed'));
+    }
   };
+
 
   const handleLogout = () => {
-    // Remove JWT token from localStorage
-    localStorage.removeItem('token');
-
-    // Redirect to login page
+    localStorage.clear();
     navigate('/login');
   };
+
+  const now = new Date();
+
+  const upcomingEvents = events.filter(event => {
+    const eventDateTime = new Date(`${event.date}T${event.time}`);
+    return eventDateTime >= now;
+  });
+
+  const completedEvents = events.filter(event => {
+    const eventDateTime = new Date(`${event.date}T${event.time}`);
+    return eventDateTime < now;
+  });
+
+  useEffect(() => {
+    let lastPopStateUrl = window.location.href;
+    const handlePopState = (event) => {
+      const currentUrl = window.location.href;
+      if (currentUrl !== lastPopStateUrl) {
+        const historyState = event.state;
+        if (historyState === null || historyState?.idx < window.history.state?.idx) {
+          localStorage.clear();
+        }
+        lastPopStateUrl = currentUrl;
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Helper to calculate min time (hh:mm) at least 1 hour from now, but only if today
+  const getMinTime = () => {
+    const selectedDate = new Date(formData.date);
+    const today = new Date();
+
+    if (
+      selectedDate.getFullYear() === today.getFullYear() &&
+      selectedDate.getMonth() === today.getMonth() &&
+      selectedDate.getDate() === today.getDate()
+    ) {
+      // Same day → set min time +1 hour
+      const oneHourLater = new Date();
+      oneHourLater.setHours(oneHourLater.getHours() + 1);
+
+      const hours = String(oneHourLater.getHours()).padStart(2, '0');
+      const minutes = String(oneHourLater.getMinutes()).padStart(2, '0');
+
+      return `${hours}:${minutes}`;
+    } else {
+      // Future date → no min time
+      return '';
+    }
+  };
+
+  const handleEdit = (event) => {
+    setEditingEventId(event._id);
+    setFormData({
+      eventName: event.eventName,
+      date: event.date,
+      time: event.time,
+      venue: event.venue,
+      description: event.description,
+      register: event.register,
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' }); // scroll to form
+  };
+
+
+  const handleNotify = (eventId) => {
+    if (window.confirm('Are you sure you want to notify all participants about this event?')) {
+      axios.post(`http://localhost:5000/api/events/${eventId}`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(res => {
+          alert(res.data.message);
+        })
+        .catch(err => {
+          console.error(err);
+          alert('Failed to notify participants.');
+        });
+    }
+  };
+
+
+  const handleDelete = () => {
+    if (window.confirm('Are you sure you want to delete this event?')) {
+      axios.delete(`http://localhost:5000/api/events/$id`);
+
+    }
+  };
+
 
   return (
     <div className="container py-5">
@@ -104,6 +214,7 @@ function OrganizerDashboard() {
                 className="form-control"
                 value={formData.date}
                 onChange={handleChange}
+                min={new Date().toISOString().split("T")[0]}
                 required
               />
             </div>
@@ -116,8 +227,22 @@ function OrganizerDashboard() {
                 className="form-control"
                 value={formData.time}
                 onChange={handleChange}
+                min={getMinTime()}
                 required
               />
+            </div>
+            <div className="col-12">
+              <label htmlFor="description" className="form-label">Event Description</label>
+              <textarea
+                id="description"
+                name="description"
+                className="form-control"
+                value={formData.description}
+                onChange={handleChange}
+                placeholder="Enter event description"
+                rows="4"
+                required
+              ></textarea>
             </div>
             <div className="col-12">
               <label htmlFor="venue" className="form-label">Venue</label>
@@ -148,36 +273,69 @@ function OrganizerDashboard() {
               />
             </div>
             <div className="col-12 text-end">
-              <button type="submit" className="btn btn-success px-4">Create Event</button>
+              <button type="submit" className="btn btn-success px-4">
+                {editingEventId ? 'Save Changes' : 'Create Event'}
+              </button>
             </div>
           </form>
         </div>
       </div>
 
-      {/* List of Created Events */}
-      <div>
-        <h3 className="mb-3 text-secondary">Your Created Events</h3>
-        {events.length === 0 ? (
-          <p className="text-muted">No events created yet.</p>
+      {/* Upcoming Events */}
+      <div className="mb-5">
+        <h3 className="mb-3 text-success">Upcoming Events</h3>
+        {upcomingEvents.length === 0 ? (
+          <p className="text-muted">No upcoming events.</p>
         ) : (
           <div className="row row-cols-1 row-cols-md-2 g-4">
-            {events.map((event) => (
+            {upcomingEvents.map(event => (
               <div key={event._id} className="col">
                 <div className="card h-100 shadow-sm">
                   <div className="card-body">
                     <h5 className="card-title text-primary">{event.eventName}</h5>
-                    <p className="card-text mb-1">
-                      <strong>Date:</strong> {new Date(event.date).toLocaleDateString()}
-                    </p>
-                    <p className="card-text mb-1">
-                      <strong>Time:</strong> {event.time}
-                    </p>
-                    <p className="card-text mb-0">
-                      <strong>Venue:</strong> {event.venue}
-                    </p>
-                    <p className="card-text mb-0">
-                      <strong>Register:</strong> {event.register}
-                    </p>
+                    <p className="card-text mb-1"><strong>Date:</strong> {new Date(event.date).toLocaleDateString()}</p>
+                    <p className="card-text mb-1"><strong>Time:</strong> {event.time}</p>
+                    <p className="card-text mb-1"><strong>Venue:</strong> {event.venue}</p>
+                    <p className="card-text mb-1"><strong>Register:</strong> <a href={event.register}>Registration Link</a></p>
+                    <div className="d-flex justify-content-end align-items-center gap-2 mt-3">
+                      <button className="btn btn-outline-warning btn-sm" onClick={() => handleEdit(event)}>
+                        ✏️ Edit
+                      </button>
+                      <button className="btn btn-outline-danger btn-sm" onClick={() => handleDelete(event._id)}>
+                        🗑️ Delete
+                      </button>
+                      <button className="btn btn-outline-info btn-sm" onClick={() => handleNotify(event._id)}>
+                        📣 Notify
+                      </button>
+                    </div>
+                  </div>
+
+                </div>
+
+              </div>
+            ))}
+          </div>
+
+        )}
+      </div>
+
+      {/* Completed Events */}
+      <div>
+        <h3 className="mb-3 text-secondary">Completed Events</h3>
+        {completedEvents.length === 0 ? (
+          <p className="text-muted">No completed events.</p>
+        ) : (
+          <div className="row row-cols-1 row-cols-md-2 g-4">
+            {completedEvents.map(event => (
+              <div key={event._id} className="col">
+                <div className="card h-100 shadow-sm">
+                  <div className="card-body">
+                    <h5 className="card-title text-primary">{event.eventName}</h5>
+                    <p className="card-text mb-1"><strong>Date:</strong> {new Date(event.date).toLocaleDateString()}</p>
+                    <p className="card-text mb-1"><strong>Time:</strong> {event.time}</p>
+                    <p className="card-text mb-1"><strong>Venue:</strong> {event.venue}</p>
+                    <p className="card-text mb-1"><strong>Description:</strong> {event.description}</p>
+                    <p className="card-text mb-1"><strong>Register:</strong> <a href={event.register}>Registration Link</a></p>
                   </div>
                 </div>
               </div>
@@ -185,6 +343,7 @@ function OrganizerDashboard() {
           </div>
         )}
       </div>
+
     </div>
   );
 }
