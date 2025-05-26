@@ -6,6 +6,7 @@ import mongoose from "mongoose";
 import cors from "cors";
 import userRoutes from "./routes/userRoutes.js";
 import eventRoutes from "./routes/eventRoutes.js";
+import emailVerificationRoutes from './routes/emailVerificationRoutes.js';
 
 const app = express();
 
@@ -23,6 +24,8 @@ app.get('/', (request, response) => {
 app.use('/api/user', userRoutes);
 
 app.use("/api/events", eventRoutes);
+
+app.use("/api/verify", emailVerificationRoutes);
 
 mongoose
 .connect(mongoDBURL)
